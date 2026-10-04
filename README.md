@@ -2,7 +2,7 @@
 
 Reproducibility materials for the manuscript:
 
-**Beyond Aggregate Scores in HVAC Fault Diagnosis: Independent-Unit Evaluation and Real-Operational Validation Across 41 Air-Handling Units**
+**Beyond Aggregate HVAC Fault-Diagnosis Scores: Equipment-Independent and Cross-Building Evidence from 41 Air-Handling Units**
 
 Authors: Ghassan Malkawi and Ahmed Abdelaziz Elsayed.
 
