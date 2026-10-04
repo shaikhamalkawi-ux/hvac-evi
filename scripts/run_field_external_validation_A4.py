@@ -620,4 +620,139 @@ def within_building_analysis(datasets: Dict[str, pd.DataFrame], features: Sequen
     class_rows = []
     fold_records: Dict[str, Any] = {}
     prediction_rows = []
-    local_group_macro: Dict[str, float]
+    local_group_macro: Dict[str, float] = {}
+
+    for building in BUILDINGS:
+        df = datasets[building].reset_index(drop=True)
+        X = df[list(features)]
+        y = df["__label_canonical__"].astype(str)
+        g = df["__ahu_canonical__"].astype(str)
+        for design in ["row_wise", "ahu_disjoint"]:
+            pred, fold_log = run_oof(X, y, g, design, SEED)
+            met = fixed_metrics(y, pred)
+            summary_rows.append({"building": building, "design": design, "seed": SEED, **met})
+            cm = class_metrics(y, pred)
+            cm.insert(0, "building", building)
+            cm.insert(1, "design", design)
+            class_rows.extend(cm.to_dict("records"))
+            fold_records[f"{building}/{design}/seed_{SEED}"] = fold_log
+            if design == "ahu_disjoint":
+                local_group_macro[building] = met["macro_f1"]
+            prediction_rows.extend([
+                {
+                    "building": building,
+                    "design": design,
+                    "row_index_within_source_csv": int(i),
+                    "ahu": str(g.iloc[i]),
+                    "true_label": str(y.iloc[i]),
+                    "predicted_label": str(pred[i]),
+                }
+                for i in range(len(df))
+            ])
+
+    summ = pd.DataFrame(summary_rows)
+    summ.to_csv(result_root / "within_building_primary_metrics.csv", index=False)
+    pd.DataFrame(class_rows).to_csv(result_root / "within_building_primary_class_metrics.csv", index=False)
+    pd.DataFrame(prediction_rows).to_csv(result_root / "within_building_primary_oof_predictions.csv", index=False)
+    json_dump(fold_records, result_root / "within_building_primary_fold_log.json")
+
+    # Matched row-minus-group contrasts on the same fixed model / seed / folds count.
+    contrast = []
+    for b in BUILDINGS:
+        r = summ[(summ.building == b) & (summ.design == "row_wise")].iloc[0]
+        g = summ[(summ.building == b) & (summ.design == "ahu_disjoint")].iloc[0]
+        contrast.append({
+            "building": b,
+            "row_macro_f1": float(r.macro_f1),
+            "ahu_disjoint_macro_f1": float(g.macro_f1),
+            "delta_row_minus_ahu_disjoint_macro_f1": float(r.macro_f1 - g.macro_f1),
+            "row_min_class_recall": float(r.min_class_recall),
+            "ahu_disjoint_min_class_recall": float(g.min_class_recall),
+            "delta_row_minus_ahu_disjoint_min_recall": float(r.min_class_recall - g.min_class_recall),
+        })
+    pd.DataFrame(contrast).to_csv(result_root / "within_building_primary_contrasts.csv", index=False)
+
+    multiseed_rows = []
+    if run_multiseed:
+        for seed in SECONDARY_SEEDS:
+            for building in BUILDINGS:
+                df = datasets[building].reset_index(drop=True)
+                X = df[list(features)]
+                y = df["__label_canonical__"].astype(str)
+                gr = df["__ahu_canonical__"].astype(str)
+                m = {}
+                for design in ["row_wise", "ahu_disjoint"]:
+                    pred, _ = run_oof(X, y, gr, design, seed)
+                    m[design] = fixed_metrics(y, pred)
+                multiseed_rows.append({
+                    "building": building,
+                    "seed": seed,
+                    "row_macro_f1": m["row_wise"]["macro_f1"],
+                    "ahu_disjoint_macro_f1": m["ahu_disjoint"]["macro_f1"],
+                    "delta_row_minus_ahu_disjoint_macro_f1": m["row_wise"]["macro_f1"] - m["ahu_disjoint"]["macro_f1"],
+                    "row_min_class_recall": m["row_wise"]["min_class_recall"],
+                    "ahu_disjoint_min_class_recall": m["ahu_disjoint"]["min_class_recall"],
+                    "delta_row_minus_ahu_disjoint_min_recall": m["row_wise"]["min_class_recall"] - m["ahu_disjoint"]["min_class_recall"],
+                })
+        pd.DataFrame(multiseed_rows).to_csv(result_root / "within_building_20seed_split_sensitivity.csv", index=False)
+        ms = pd.DataFrame(multiseed_rows)
+        ms_summary = ms.groupby("building").agg(
+            n_seeds=("seed", "count"),
+            median_delta_macro_f1=("delta_row_minus_ahu_disjoint_macro_f1", "median"),
+            min_delta_macro_f1=("delta_row_minus_ahu_disjoint_macro_f1", "min"),
+            max_delta_macro_f1=("delta_row_minus_ahu_disjoint_macro_f1", "max"),
+            median_delta_min_recall=("delta_row_minus_ahu_disjoint_min_recall", "median"),
+            min_delta_min_recall=("delta_row_minus_ahu_disjoint_min_recall", "min"),
+            max_delta_min_recall=("delta_row_minus_ahu_disjoint_min_recall", "max"),
+        ).reset_index()
+        ms_summary.to_csv(result_root / "within_building_20seed_sensitivity_summary.csv", index=False)
+
+    # Primary figure: show measured score under row-wise and AHU-disjoint OOF.
+    c = pd.DataFrame(contrast)
+    x = np.arange(len(BUILDINGS)); width = 0.36
+    fig, ax = plt.subplots(figsize=(8.4, 4.8))
+    ax.bar(x - width/2, c["row_macro_f1"], width, label="Row-wise 4-fold OOF")
+    ax.bar(x + width/2, c["ahu_disjoint_macro_f1"], width, label="AHU-disjoint 4-fold OOF")
+    ax.set_xticks(x); ax.set_xticklabels([b.title() for b in BUILDINGS])
+    ax.set_ylim(0, 1); ax.set_ylabel("Macro-F1")
+    ax.set_title("External field validation: row-wise versus equipment-independent evaluation")
+    ax.legend(frameon=False); ax.grid(axis="y", alpha=.2)
+    fig.tight_layout(); fig.savefig(result_root / "Figure_Field_Independence_Contrast.png", dpi=240, bbox_inches="tight")
+    plt.close(fig)
+
+    return {"local_ahu_disjoint_macro_f1": local_group_macro}
+
+
+def cross_building_analysis(datasets: Dict[str, pd.DataFrame], features: Sequence[str], result_root: Path, local_group_macro: Mapping[str, float]) -> None:
+    transfer_rows = []
+    class_rows = []
+    support_rows = []
+    support_details: Dict[str, Any] = {}
+
+    for source in BUILDINGS:
+        src = datasets[source].reset_index(drop=True)
+        Xs = src[list(features)]
+        ys = src["__label_canonical__"].astype(str)
+        for target in BUILDINGS:
+            if source == target:
+                continue
+            tgt = datasets[target].reset_index(drop=True)
+            Xt = tgt[list(features)]
+            yt = tgt["__label_canonical__"].astype(str)
+            model = fixed_model(SEED)
+            model.fit(Xs, ys)
+            pred = model.predict(Xt).astype(str)
+            met = fixed_metrics(yt, pred)
+            direction = f"{source}->{target}"
+            transfer_rows.append({
+                "source": source,
+                "target": target,
+                "direction": direction,
+                "target_rows": int(len(tgt)),
+                **met,
+                "target_local_ahu_disjoint_macro_f1": float(local_group_macro[target]),
+                "transfer_minus_target_local_group_macro_f1": float(met["macro_f1"] - local_group_macro[target]),
+            })
+            cm = class_metrics(yt, pred)
+            cm.insert(0, "source", source); cm.insert(1, "target", target); cm.insert(2, "direction", direction)
+    
