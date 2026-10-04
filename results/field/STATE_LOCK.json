@@ -1,0 +1,29 @@
+{
+  "protocol_id": "HVAC_EVI_FieldExternalValidation_Protocol01",
+  "protocol_amendment": "A2_v3_common_feature_intersection",
+  "protocol_status": "PRESPECIFIED_ANALYSIS_WITH_PRE_RESULT_SCHEMA_AMENDMENT",
+  "article_id": 27147678,
+  "article_version": 3,
+  "data_doi": "10.6084/m9.figshare.27147678.v3",
+  "source_article_doi": "10.1038/s41597-025-05825-9",
+  "seed": 20260802,
+  "n_folds": 4,
+  "secondary_seeds": [20260802,20260803,20260804,20260805,20260806,20260807,20260808,20260809,20260810,20260811,20260812,20260813,20260814,20260815,20260816,20260817,20260818,20260819,20260820,20260821],
+  "primary_labels": ["Normal","RATSF","SFF"],
+  "primary_feature_semantics": ["set_point_temperature","return_air_temperature","supply_air_temperature","supply_fan","valve_position","heating_supply_temperature","cooling_supply_temperature","cooling_pump"],
+  "excluded_schema_semantics": {
+    "heating_pump": {
+      "reason": "Exact Figshare v3 hospital CSV has no heating-pump column; 'Heat Exchanger' is not treated as a synonym without source evidence.",
+      "status": "excluded_before_results_due_to_source_schema_mismatch"
+    }
+  },
+  "model": {
+    "pipeline": ["SimpleImputer(strategy=median, keep_empty_features=True)","DecisionTreeClassifier"],
+    "max_depth": 10,
+    "min_samples_leaf": 10,
+    "class_weight": "balanced",
+    "random_state": 20260802
+  },
+  "support_bounds": ["minmax","p01_p99","p05_p95"],
+  "raw_data_redistribution": "excluded_from_result_zip"
+}
