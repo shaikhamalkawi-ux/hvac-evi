@@ -755,4 +755,140 @@ def cross_building_analysis(datasets: Dict[str, pd.DataFrame], features: Sequenc
             })
             cm = class_metrics(yt, pred)
             cm.insert(0, "source", source); cm.insert(1, "target", target); cm.insert(2, "direction", direction)
-    
+            class_rows.extend(cm.to_dict("records"))
+
+            for bn, loq, hiq in BOUNDS:
+                r = support_diagnostic(src, tgt, features, loq, hiq)
+                support_rows.append({
+                    "source": source,
+                    "target": target,
+                    "direction": direction,
+                    "bounds": bn,
+                    **{k: v for k, v in r.items() if k != "feature_failure_counts"},
+                })
+                support_details[f"{direction}/{bn}"] = r
+
+    transfer = pd.DataFrame(transfer_rows)
+    support = pd.DataFrame(support_rows)
+    transfer.to_csv(result_root / "cross_building_transfer_metrics.csv", index=False)
+    pd.DataFrame(class_rows).to_csv(result_root / "cross_building_transfer_class_metrics.csv", index=False)
+    support.to_csv(result_root / "cross_building_support_metrics.csv", index=False)
+    json_dump(support_details, result_root / "cross_building_support_details.json")
+
+    merged = transfer.merge(
+        support[support.bounds == "minmax"][["direction", "support_fraction", "supported", "N", "median_violations", "nGT5"]],
+        on="direction",
+        how="left",
+    )
+    merged.to_csv(result_root / "cross_building_transfer_vs_minmax_support.csv", index=False)
+
+    fig, ax = plt.subplots(figsize=(7.2, 5.4))
+    for _, r in merged.iterrows():
+        ax.scatter(r.support_fraction, r.macro_f1, s=60)
+        ax.annotate(r.direction, (r.support_fraction, r.macro_f1), xytext=(5, 4), textcoords="offset points", fontsize=8)
+    ax.set_xlim(-0.02, 1.02); ax.set_ylim(0, 1)
+    ax.set_xlabel("Target support fraction under source min–max bounds")
+    ax.set_ylabel("Cross-building target macro-F1")
+    ax.set_title("Cross-building score and target support answer different questions")
+    ax.grid(alpha=.2); fig.tight_layout()
+    fig.savefig(result_root / "Figure_CrossBuilding_Score_vs_Support.png", dpi=240, bbox_inches="tight")
+    plt.close(fig)
+
+
+def write_result_summary(result_root: Path, run_multiseed: bool) -> None:
+    within = pd.read_csv(result_root / "within_building_primary_contrasts.csv")
+    transfer = pd.read_csv(result_root / "cross_building_transfer_metrics.csv")
+    support = pd.read_csv(result_root / "cross_building_support_metrics.csv")
+    class_counts = pd.read_csv(result_root / "primary_class_counts.csv")
+
+    lines = [
+        f"# {PROTOCOL_ID} ({AMENDMENT_ID}) — observed result summary",
+        "",
+        "This file is generated from the prespecified protocol. It reports observations only; it does not create a post-hoc pass/fail threshold.",
+        "",
+        "## Data admitted by the schema gate",
+        "",
+    ]
+    for b in BUILDINGS:
+        sub = class_counts[class_counts.building == b]
+        counts = ", ".join(f"{r.class_label}={int(r['count'])}" for _, r in sub.iterrows())
+        lines.append(f"- **{b.title()}**: {counts}.")
+    lines += ["", "## Equipment-independence contrast", ""]
+    for _, r in within.iterrows():
+        lines.append(
+            f"- **{r.building.title()}**: row-wise macro-F1={r.row_macro_f1:.4f}; "
+            f"AHU-disjoint macro-F1={r.ahu_disjoint_macro_f1:.4f}; "
+            f"row-minus-AHU-disjoint Δ={r.delta_row_minus_ahu_disjoint_macro_f1:+.4f}. "
+            f"Minimum-class recall: {r.row_min_class_recall:.4f} vs {r.ahu_disjoint_min_class_recall:.4f}."
+        )
+    if run_multiseed and (result_root / "within_building_20seed_sensitivity_summary.csv").exists():
+        lines += ["", "The 20-seed split-sensitivity file characterizes fold randomness; it is secondary support, not a separate contribution."]
+
+    lines += ["", "## Cross-building transfer and source-defined target support", ""]
+    minmax = support[support.bounds == "minmax"]
+    p01 = support[support.bounds == "p01_p99"]
+    p05 = support[support.bounds == "p05_p95"]
+    for _, t in transfer.iterrows():
+        d = t.direction
+        a = minmax[minmax.direction == d].iloc[0]
+        b = p01[p01.direction == d].iloc[0]
+        c = p05[p05.direction == d].iloc[0]
+        lines.append(
+            f"- **{d}**: target macro-F1={t.macro_f1:.4f}; minimum-class recall={t.min_class_recall:.4f}; "
+            f"supported target rows={int(a.supported)}/{int(a.N)} (min–max), "
+            f"{int(b.supported)}/{int(b.N)} (1st–99th), "
+            f"{int(c.supported)}/{int(c.N)} (5th–95th)."
+        )
+    lines += [
+        "",
+        "## Interpretation boundary",
+        "",
+        "- These are independent real-operational external validation results on published expert-labelled AHU data; they are **not** a prospective field intervention designed by the HVAC-EVI authors.",
+        "- The support fraction is a conservative source-coverage diagnostic on the eight common documented sensor concepts. It is **not** a probability of transfer success and has no post-hoc acceptance threshold.",
+        "- The source labels are expert/ASHRAE-guideline-based operational annotations. They should not be relabelled as repair-confirmed physical failures unless independent repair confirmation is available.",
+        "- Whether the field results strengthen, narrow, or fail to reproduce the Release 1.4.2 pattern must be decided from these prespecified outputs after QA, not by changing the protocol after seeing results.",
+        "",
+    ]
+    (result_root / "RESULT_SUMMARY.md").write_text("\n".join(lines), encoding="utf-8")
+
+
+def run(args: argparse.Namespace) -> Path:
+    result_root = Path(args.output_dir).resolve()
+    if result_root.exists():
+        shutil.rmtree(result_root)
+    result_root.mkdir(parents=True, exist_ok=True)
+    raw_dir = result_root / "raw_source_not_for_redistribution"
+    raw_dir.mkdir(parents=True, exist_ok=True)
+
+    json_dump({
+        "protocol_id": PROTOCOL_ID,
+        "protocol_amendment": AMENDMENT_ID,
+        "protocol_status": "PRESPECIFIED_ANALYSIS_WITH_PRE_RESULT_SCHEMA_AMENDMENT",
+        "article_id": ARTICLE_ID,
+        "article_version": ARTICLE_VERSION,
+        "data_doi": DATA_DOI,
+        "source_article_doi": SOURCE_ARTICLE_DOI,
+        "seed": SEED,
+        "n_folds": N_FOLDS,
+        "secondary_seeds": SECONDARY_SEEDS,
+        "primary_labels": PRIMARY_LABELS,
+        "primary_feature_semantics": list(SENSOR_ALIASES),
+        "excluded_schema_semantics": EXCLUDED_SCHEMA_SEMANTICS,
+        "model": {
+            "pipeline": ["SimpleImputer(strategy=median, keep_empty_features=True)", "DecisionTreeClassifier"],
+            "max_depth": 10,
+            "min_samples_leaf": 10,
+            "class_weight": "balanced",
+            "random_state": SEED,
+        },
+        "support_bounds": [x[0] for x in BOUNDS],
+        "baseline_state_lock": BASELINE_STATE_LOCK,
+        "raw_data_redistribution": "excluded_from_result_zip",
+    }, result_root / "STATE_LOCK.json")
+
+    try:
+        if args.local_data_dir:
+            local = Path(args.local_data_dir).resolve()
+            for name in EXPECTED_FILES.values():
+                src = local / name
+                i
