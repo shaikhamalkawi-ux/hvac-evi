@@ -891,4 +891,92 @@ def run(args: argparse.Namespace) -> Path:
             local = Path(args.local_data_dir).resolve()
             for name in EXPECTED_FILES.values():
                 src = local / name
-                i
+                if not src.exists():
+                    blocker(result_root, "local_source", f"Missing local source file: {src}")
+                shutil.copy2(src, raw_dir / name)
+            prov = {
+                "mode": "local_data_dir",
+                "local_data_dir": str(local),
+                "data_doi_expected": DATA_DOI,
+                "downloaded_files": [
+                    {"name": p.name, "bytes": p.stat().st_size, "sha256": sha256_file(p)}
+                    for p in sorted(raw_dir.glob("*.csv"))
+                ],
+            }
+        else:
+            prov = download_source(raw_dir)
+        json_dump(prov, result_root / "SOURCE_PROVENANCE.json")
+
+        datasets, schemas, common_features = load_and_gate(raw_dir, result_root)
+        gate = {
+            "status": "PASS",
+            "buildings": BUILDINGS,
+            "resolved_ahu_counts": {b: int(datasets[b]["__ahu_canonical__"].nunique()) for b in BUILDINGS},
+            "primary_labels": PRIMARY_LABELS,
+            "common_sensor_semantics": [f.replace("__sensor__", "") for f in common_features],
+            "excluded_schema_semantics": EXCLUDED_SCHEMA_SEMANTICS,
+        }
+        json_dump(gate, result_root / "DATA_GATE_RESULT.json")
+
+        within = within_building_analysis(datasets, common_features, result_root, run_multiseed=not args.no_multiseed)
+        cross_building_analysis(datasets, common_features, result_root, within["local_ahu_disjoint_macro_f1"])
+        write_result_summary(result_root, run_multiseed=not args.no_multiseed)
+
+        # Compact machine-readable completion record.
+        json_dump({
+            "protocol_id": PROTOCOL_ID,
+            "protocol_amendment": AMENDMENT_ID,
+            "runner_revision": RUNNER_REVISION,
+            "status": "COMPLETE",
+            "data_gate": "PASS",
+            "scientific_baseline_changed": False,
+            "raw_source_included_in_result_zip": False,
+            "next_decision": "Independent QA must decide whether results justify opening HVAC-EVI Release 1.5; do not update the manuscript automatically.",
+        }, result_root / "RUN_STATUS.json")
+
+        manifest = result_root / "MANIFEST_SHA256.csv"
+        write_manifest(result_root, manifest, exclude=[manifest])
+        zip_path = result_root.parent / "HVAC_EVI_FieldExternalValidation_A4_ResultPackage.zip"
+        if zip_path.exists():
+            zip_path.unlink()
+        make_result_zip(result_root, zip_path)
+        return zip_path
+    except Exception as e:
+        if not (result_root / "BLOCKER_REPORT.json").exists():
+            json_dump({
+                "protocol_id": PROTOCOL_ID,
+                "protocol_amendment": AMENDMENT_ID,
+                "runner_revision": RUNNER_REVISION,
+                "status": "BLOCKED",
+                "exception_type": type(e).__name__,
+                "message": str(e),
+                "traceback": traceback.format_exc(),
+            }, result_root / "BLOCKER_REPORT.json")
+        manifest = result_root / "MANIFEST_SHA256.csv"
+        try:
+            write_manifest(result_root, manifest, exclude=[manifest])
+        except Exception:
+            pass
+        zip_path = result_root.parent / "HVAC_EVI_FieldExternalValidation_A4_BLOCKED_ResultPackage.zip"
+        if zip_path.exists():
+            zip_path.unlink()
+        make_result_zip(result_root, zip_path)
+        raise
+
+
+def parse_args() -> argparse.Namespace:
+    p = argparse.ArgumentParser()
+    p.add_argument("--output-dir", default="HVAC_EVI_FieldExternalValidation_A4_Result")
+    p.add_argument("--local-data-dir", default=None, help="Use already downloaded exact Figshare v3 CSVs instead of internet download")
+    p.add_argument("--no-multiseed", action="store_true", help="Skip the predeclared 20-seed secondary split sensitivity (primary analyses still run)")
+    return p.parse_args()
+
+
+if __name__ == "__main__":
+    args = parse_args()
+    try:
+        z = run(args)
+        print(f"RESULT_PACKAGE={z}")
+    except Exception as exc:
+        print(f"FAILED: {type(exc).__name__}: {exc}", file=sys.stderr)
+        sys.exit(2)
