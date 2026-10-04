@@ -1,0 +1,25 @@
+cff-version: 1.2.0
+message: "If you use these reproducibility materials, please cite the accompanying manuscript and this repository."
+title: "HVAC-EVI Reproducibility Materials"
+type: software
+version: "1.0.0"
+date-released: 2026-10-04
+url: "https://github.com/shaikhamalkawi-ux/hvac-evi"
+authors:
+  - family-names: Malkawi
+    given-names: Ghassan
+    orcid: "https://orcid.org/0000-0002-5320-7561"
+  - family-names: Elsayed
+    given-names: Ahmed Abdelaziz
+    orcid: "https://orcid.org/0000-0002-9255-200X"
+preferred-citation:
+  type: article
+  title: "Beyond Aggregate Scores in HVAC Fault Diagnosis: Independent-Unit Evaluation and Real-Operational Validation Across 41 Air-Handling Units"
+  authors:
+    - family-names: Malkawi
+      given-names: Ghassan
+      orcid: "https://orcid.org/0000-0002-5320-7561"
+    - family-names: Elsayed
+      given-names: Ahmed Abdelaziz
+      orcid: "https://orcid.org/0000-0002-9255-200X"
+  year: 2026
