@@ -324,4 +324,159 @@ def run_oof(X: pd.DataFrame, y: pd.Series, groups: pd.Series, design: str, seed:
     fold_log: List[Dict[str, Any]] = []
     for fold, (tr, te) in enumerate(split_iter, 1):
         model = fixed_model(seed)
-        train_labels = sorted(pd.Series(y.ilo
+        train_labels = sorted(pd.Series(y.iloc[tr]).unique().tolist())
+        test_labels = sorted(pd.Series(y.iloc[te]).unique().tolist())
+        missing_train = sorted(set(PRIMARY_LABELS) - set(train_labels))
+        model.fit(X.iloc[tr], y.iloc[tr])
+        pred[te] = model.predict(X.iloc[te]).astype(str)
+        filled[te] = True
+        fold_log.append({
+            "fold": fold,
+            "train_rows": int(len(tr)),
+            "test_rows": int(len(te)),
+            "train_ahus": int(groups.iloc[tr].nunique()),
+            "test_ahus": int(groups.iloc[te].nunique()),
+            "train_labels": train_labels,
+            "test_labels": test_labels,
+            "missing_primary_labels_from_train": missing_train,
+            "test_ahu_values": sorted(groups.iloc[te].unique().tolist()),
+        })
+    if not filled.all():
+        raise RuntimeError(f"OOF design {design} did not fill all predictions")
+    return pred.astype(str), fold_log
+
+
+def support_diagnostic(source: pd.DataFrame, target: pd.DataFrame, features: Sequence[str], loq: float, hiq: float) -> Dict[str, Any]:
+    imp = SimpleImputer(strategy="median", keep_empty_features=True)
+    tr = imp.fit_transform(source[list(features)])
+    te = imp.transform(target[list(features)])
+    if np.isnan(tr).all(axis=0).any():
+        bad = [features[i] for i, b in enumerate(np.isnan(tr).all(axis=0)) if b]
+        raise ValueError(f"All-missing source features after coercion: {bad}")
+    lo = np.quantile(tr, loq, axis=0) if loq > 0 else np.min(tr, axis=0)
+    hi = np.quantile(tr, hiq, axis=0) if hiq < 1 else np.max(tr, axis=0)
+    inside = (te >= lo) & (te <= hi)
+    violations = (~inside).sum(axis=1)
+    return {
+        "N": int(len(te)),
+        "supported": int((violations == 0).sum()),
+        "support_fraction": float((violations == 0).mean()),
+        "n0": int((violations == 0).sum()),
+        "n1": int((violations == 1).sum()),
+        "n2": int((violations == 2).sum()),
+        "n3_5": int(((violations >= 3) & (violations <= 5)).sum()),
+        "nGT5": int((violations > 5).sum()),
+        "median_violations": float(np.median(violations)),
+        "mean_violations": float(np.mean(violations)),
+        "q25_violations": float(np.quantile(violations, 0.25)),
+        "q75_violations": float(np.quantile(violations, 0.75)),
+        "feature_failure_counts": {features[j]: int((~inside[:, j]).sum()) for j in range(len(features))},
+    }
+
+
+def write_manifest(root: Path, manifest_path: Path, exclude: Iterable[Path] = ()) -> None:
+    excluded = {p.resolve() for p in exclude}
+    rows = []
+    for p in sorted(root.rglob("*")):
+        if not p.is_file() or p.resolve() in excluded:
+            continue
+        rows.append({
+            "path": str(p.relative_to(root)),
+            "bytes": p.stat().st_size,
+            "sha256": sha256_file(p),
+        })
+    pd.DataFrame(rows).to_csv(manifest_path, index=False)
+
+
+def make_result_zip(result_root: Path, zip_path: Path) -> None:
+    # Explicitly exclude the raw source directory. Source file hashes and metadata
+    # remain in the package for provenance without redistributing the CSVs.
+    with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as zf:
+        for p in sorted(result_root.rglob("*")):
+            if not p.is_file():
+                continue
+            rel = p.relative_to(result_root)
+            if rel.parts and rel.parts[0] == "raw_source_not_for_redistribution":
+                continue
+            if p == zip_path:
+                continue
+            zf.write(p, rel.as_posix())
+
+
+def blocker(result_root: Path, stage: str, message: str, details: Any = None) -> None:
+    obj = {
+        "protocol_id": PROTOCOL_ID,
+        "protocol_amendment": AMENDMENT_ID,
+        "status": "BLOCKED",
+        "stage": stage,
+        "message": message,
+        "details": details,
+    }
+    json_dump(obj, result_root / "BLOCKER_REPORT.json")
+    raise RuntimeError(f"{stage}: {message}")
+
+# -----------------------------------------------------------------------------
+# Figshare download / source audit
+# -----------------------------------------------------------------------------
+def fetch_figshare_metadata() -> Tuple[Dict[str, Any], str]:
+    urls = [
+        f"https://api.figshare.com/v2/articles/{ARTICLE_ID}/versions/{ARTICLE_VERSION}",
+        f"https://api.figshare.com/v2/articles/{ARTICLE_ID}",
+    ]
+    errors = []
+    for url in urls:
+        try:
+            r = requests.get(url, timeout=60)
+            if r.ok:
+                meta = r.json()
+                version = meta.get("version")
+                # The version-specific endpoint may omit a numeric 'version'; if the
+                # generic endpoint reports a version, it must equal the protocol lock.
+                if url.endswith(str(ARTICLE_ID)) and version is not None and int(version) != ARTICLE_VERSION:
+                    errors.append(f"{url}: latest version is {version}, protocol requires v{ARTICLE_VERSION}")
+                    continue
+                return meta, url
+            errors.append(f"{url}: HTTP {r.status_code}: {r.text[:200]}")
+        except Exception as e:
+            errors.append(f"{url}: {type(e).__name__}: {e}")
+    raise RuntimeError("Could not retrieve exact Figshare metadata: " + " | ".join(errors))
+
+
+def download_source(raw_dir: Path) -> Dict[str, Any]:
+    raw_dir.mkdir(parents=True, exist_ok=True)
+    meta, api_url = fetch_figshare_metadata()
+    files = meta.get("files", [])
+    by_name = {f.get("name"): f for f in files if f.get("name")}
+    missing = [name for name in EXPECTED_FILES.values() if name not in by_name]
+    if missing:
+        raise RuntimeError(f"Exact v{ARTICLE_VERSION} metadata is missing expected source files: {missing}; available={list(by_name)}")
+    selected_names = list(EXPECTED_FILES.values()) + [n for n in OPTIONAL_PROVENANCE_FILES if n in by_name]
+    downloaded = []
+    for name in selected_names:
+        fmeta = by_name[name]
+        url = fmeta.get("download_url")
+        if not url:
+            raise RuntimeError(f"No download_url for {name}")
+        path = raw_dir / name
+        with requests.get(url, stream=True, timeout=180) as r:
+            r.raise_for_status()
+            with path.open("wb") as out:
+                for chunk in r.iter_content(chunk_size=1024 * 1024):
+                    if chunk:
+                        out.write(chunk)
+        downloaded.append({
+            "name": name,
+            "bytes": path.stat().st_size,
+            "sha256": sha256_file(path),
+            "figshare_file_id": fmeta.get("id"),
+            "figshare_reported_size": fmeta.get("size"),
+            "figshare_computed_md5": fmeta.get("computed_md5") or fmeta.get("supplied_md5"),
+            "download_url": url,
+        })
+    return {
+        "protocol_article_id": ARTICLE_ID,
+        "protocol_version": ARTICLE_VERSION,
+        "data_doi": DATA_DOI,
+        "source_article_doi": SOURCE_ARTICLE_DOI,
+        "figshare_api_url_used": api_url,
+        "metadata_
