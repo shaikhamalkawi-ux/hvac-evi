@@ -479,4 +479,145 @@ def download_source(raw_dir: Path) -> Dict[str, Any]:
         "data_doi": DATA_DOI,
         "source_article_doi": SOURCE_ARTICLE_DOI,
         "figshare_api_url_used": api_url,
-        "metadata_
+        "metadata_title": meta.get("title"),
+        "metadata_version": meta.get("version"),
+        "metadata_published_date": meta.get("published_date"),
+        "metadata_modified_date": meta.get("modified_date"),
+        "metadata_license": meta.get("license"),
+        "metadata_defined_type_name": meta.get("defined_type_name"),
+        "downloaded_files": downloaded,
+    }
+
+# -----------------------------------------------------------------------------
+# Data gate and analyses
+# -----------------------------------------------------------------------------
+def load_and_gate(raw_dir: Path, result_root: Path) -> Tuple[Dict[str, pd.DataFrame], Dict[str, Dict[str, Any]], List[str]]:
+    datasets: Dict[str, pd.DataFrame] = {}
+    schemas: Dict[str, Dict[str, Any]] = {}
+    resolved_semantics_by_building: Dict[str, Dict[str, str]] = {}
+    inventory_rows = []
+
+    for building in BUILDINGS:
+        path = raw_dir / EXPECTED_FILES[building]
+        if not path.exists():
+            blocker(result_root, "source_files", f"Missing local source file {path.name}")
+        df = pd.read_csv(path, low_memory=False)
+        if len(df) == 0:
+            blocker(result_root, "schema_gate", f"{building}: CSV is empty")
+        columns = list(df.columns)
+
+        try:
+            label_col = resolve_by_alias(columns, LABEL_COLUMN_ALIASES, f"{building}:label")
+            ahu_col = resolve_by_alias(columns, AHU_COLUMN_ALIASES, f"{building}:AHU")
+        except Exception as e:
+            blocker(result_root, "schema_gate", f"{building}: could not resolve label/AHU columns", {"error": str(e), "columns": columns})
+
+        time_col = None
+        try:
+            time_col = resolve_by_alias(columns, TIME_COLUMN_ALIASES, f"{building}:time")
+        except Exception:
+            # Timestamp is useful provenance but not required for the prespecified
+            # equipment-independence or cross-building analyses.
+            time_col = None
+
+        excluded = {label_col, ahu_col}
+        if time_col:
+            excluded.add(time_col)
+        try:
+            sensor_map = resolve_sensor_columns(df, excluded)
+        except Exception as e:
+            blocker(result_root, "schema_gate", f"{building}: common documented sensor mapping failed", {"error": str(e), "columns": columns})
+
+        # Canonical labels are defined from source terminology, not from model performance.
+        canonical = df[label_col].map(canonical_label)
+        raw_labels = df[label_col].astype(str)
+        unmapped_examples = sorted(raw_labels[canonical.isna()].dropna().unique().tolist())[:30]
+        df = df.copy()
+        df["__label_canonical__"] = canonical
+        df["__ahu_canonical__"] = df[ahu_col].astype(str).str.strip()
+        for semantic, col in sensor_map.items():
+            df[f"__sensor__{semantic}"] = pd.to_numeric(df[col], errors="coerce")
+
+        # Gate on documented number of independent AHU units.
+        n_ahu = int(df["__ahu_canonical__"].nunique())
+        if n_ahu != EXPECTED_AHU_COUNTS[building]:
+            blocker(
+                result_root,
+                "schema_gate",
+                f"{building}: resolved AHU count {n_ahu} does not match published count {EXPECTED_AHU_COUNTS[building]}",
+                {"ahu_col": ahu_col, "ahu_values": sorted(df["__ahu_canonical__"].unique().tolist())},
+            )
+
+        primary = df[df["__label_canonical__"].isin(PRIMARY_LABELS)].copy()
+        counts = primary["__label_canonical__"].value_counts().to_dict()
+        missing_primary = [l for l in PRIMARY_LABELS if int(counts.get(l, 0)) == 0]
+        if missing_primary:
+            blocker(result_root, "class_gate", f"{building}: primary source-defined labels missing: {missing_primary}", counts)
+
+        # Every common sensor must contain observed numeric information in every building.
+        all_missing = []
+        for semantic in SENSOR_ALIASES:
+            c = f"__sensor__{semantic}"
+            if primary[c].notna().sum() == 0:
+                all_missing.append(semantic)
+        if all_missing:
+            blocker(result_root, "feature_gate", f"{building}: primary data have all-missing common sensors: {all_missing}")
+
+        datasets[building] = primary
+        resolved_semantics_by_building[building] = sensor_map
+        schemas[building] = {
+            "source_file": EXPECTED_FILES[building],
+            "raw_rows_loaded": int(len(df)),
+            "primary_three_class_rows": int(len(primary)),
+            "raw_column_count": int(len(columns)),
+            "raw_columns": columns,
+            "label_column": label_col,
+            "ahu_column": ahu_col,
+            "time_column": time_col,
+            "resolved_sensor_columns": sensor_map,
+            "resolved_ahu_count": n_ahu,
+            "canonical_primary_class_counts": {l: int(counts.get(l, 0)) for l in PRIMARY_LABELS},
+            "canonical_all_label_counts": {str(k): int(v) for k, v in df["__label_canonical__"].value_counts(dropna=False).to_dict().items()},
+            "unmapped_raw_label_examples": unmapped_examples,
+            "primary_missing_fraction_by_sensor": {
+                semantic: float(primary[f"__sensor__{semantic}"].isna().mean()) for semantic in SENSOR_ALIASES
+            },
+        }
+        for c in columns:
+            inventory_rows.append({
+                "building": building,
+                "column": c,
+                "normalized_column": norm_col(c),
+                "dtype": str(df[c].dtype),
+                "missing_fraction": float(df[c].isna().mean()),
+                "n_unique": int(df[c].nunique(dropna=True)),
+            })
+
+    # The semantic feature universe is fixed by the eight source-documented common
+    # sensor concepts; per-building raw names may differ but map to these same concepts.
+    common_features = [f"__sensor__{semantic}" for semantic in SENSOR_ALIASES]
+
+    pd.DataFrame(inventory_rows).to_csv(result_root / "schema_column_inventory.csv", index=False)
+    json_dump(schemas, result_root / "schema_audit.json")
+    json_dump(resolved_semantics_by_building, result_root / "resolved_sensor_mapping.json")
+    pd.DataFrame([
+        {"building": b, "class_label": l, "count": int((datasets[b]["__label_canonical__"] == l).sum())}
+        for b in BUILDINGS for l in PRIMARY_LABELS
+    ]).to_csv(result_root / "primary_class_counts.csv", index=False)
+
+    feature_rows = []
+    for semantic in SENSOR_ALIASES:
+        row = {"semantic_feature": semantic}
+        for b in BUILDINGS:
+            row[b] = resolved_semantics_by_building[b][semantic]
+        feature_rows.append(row)
+    pd.DataFrame(feature_rows).to_csv(result_root / "common_feature_mapping.csv", index=False)
+    return datasets, schemas, common_features
+
+
+def within_building_analysis(datasets: Dict[str, pd.DataFrame], features: Sequence[str], result_root: Path, run_multiseed: bool) -> Dict[str, Any]:
+    summary_rows = []
+    class_rows = []
+    fold_records: Dict[str, Any] = {}
+    prediction_rows = []
+    local_group_macro: Dict[str, float]
