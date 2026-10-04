@@ -1,0 +1,10 @@
+# Versions documented in Supplementary Methods for the Release 1.5 analysis environment
+numpy==2.3.5
+pandas==2.2.3
+scikit-learn==1.8.0
+scipy==1.17.0
+matplotlib==3.10.8
+
+# Required by the field runner for Figshare retrieval.
+# The archived materials did not preserve an exact requests version.
+requests>=2.31,<3
