@@ -35,7 +35,7 @@ The repository also preserves the source-specific boiler sensor-tier analysis an
 - `protocol/` — source, protocol, and claim-boundary documentation.
 - `results/field/` — derived field-validation metrics and QA outputs.
 - `results/core/` — derived ORNL/boiler/PreDist analytical tables.
-- `data/` — publication-safe derived inputs and source hashes only.
+- `data/` — source hashes and publication-safe provenance records. The large historical core-input tables remain in the archived Release 1.5 reproducibility package.
 - `manifests/` — SHA-256 manifests from the archived reproducibility package.
 
 ## Raw-data boundary
@@ -88,7 +88,7 @@ pip install -r environment/requirements_core_release_1_4_2.txt
 python scripts/run_release_1_4_extension.py
 ```
 
-The extension script reads package-relative derived inputs in `data/core_inputs/` and writes generated analytical tables/figures.
+The preserved extension script reads historical derived inputs from the original Release 1.4.2/1.5 reproducibility archive. The principal expected core result tables are mirrored under `results/core/`, but the full historical input lineage is not duplicated here.
 
 ## Claim boundary
 
