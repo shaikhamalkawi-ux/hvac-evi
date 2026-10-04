@@ -14,7 +14,7 @@ authors:
     orcid: "https://orcid.org/0000-0002-9255-200X"
 preferred-citation:
   type: article
-  title: "Beyond Aggregate Scores in HVAC Fault Diagnosis: Independent-Unit Evaluation and Real-Operational Validation Across 41 Air-Handling Units"
+  title: "Beyond Aggregate HVAC Fault-Diagnosis Scores: Equipment-Independent and Cross-Building Evidence from 41 Air-Handling Units"
   authors:
     - family-names: Malkawi
       given-names: Ghassan
