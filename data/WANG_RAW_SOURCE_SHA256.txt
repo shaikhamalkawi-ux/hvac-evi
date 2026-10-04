@@ -1,0 +1,13 @@
+Wang Figshare v3 raw-source hashes (raw CSV files are not redistributed)
+
+auditorium_scientific_data.csv
+acfcd58d1dff5b76f64bbe716e824c4592f83a5cbfc7e6c8b77fe050bd414d3b
+
+hosptial_scientific_data.csv
+66feab7fe66d77ca1c632315a61a7a93412ff00dc2fb0cd9b2485394cecca9f7
+
+office_scientific_data.csv
+7dfe5660c6d5b0db388e01a59956a3ce40136d42c7a1d2038bfc6a7ea2a80203
+
+Dataset DOI: 10.6084/m9.figshare.27147678.v3
+Source article DOI: 10.1038/s41597-025-05825-9
