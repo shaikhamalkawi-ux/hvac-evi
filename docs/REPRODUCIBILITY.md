@@ -9,7 +9,7 @@
 - boiler classwise recall comparison;
 - PreDist transfer-score/support points.
 
-It reads only derived package-relative inputs in `data/core_inputs/`.
+It was designed to read derived package-relative inputs from the archived historical core. Those larger historical inputs remain in the Release 1.5 reproducibility package; the expected core result tables are mirrored here under `results/core/`.
 
 ### 2. Real-operational external validation
 `scripts/run_field_external_validation_A4.py` implements the 41-AHU field-validation protocol:
