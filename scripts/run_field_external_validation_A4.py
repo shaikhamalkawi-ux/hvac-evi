@@ -173,4 +173,155 @@ def canonical_label(x: Any) -> str | None:
     n = norm_text(x)
     if not n or n == "nan":
         return None
- 
+    compact = n.replace(" ", "")
+    if compact in {"normal", "normalcondition", "normaloperation"} or n.startswith("normal"):
+        return "Normal"
+    if compact == "ratsf" or ("return" in n and "air" in n and "temperature" in n and "fault" in n):
+        return "RATSF"
+    if compact == "satsf" or ("supply" in n and "air" in n and "temperature" in n and "fault" in n):
+        return "SATSF"
+    if compact == "sff" or ("supply" in n and "fan" in n and "fault" in n):
+        return "SFF"
+    if compact == "vpf" or ("valve" in n and "position" in n and "fault" in n):
+        return "VPF"
+    if compact == "cpf" or ("cooling" in n and "pump" in n and "fault" in n):
+        return "CPF"
+    if compact == "hpf" or ("heating" in n and "pump" in n and "fault" in n):
+        return "HPF"
+    # The data descriptor refers once to cooling supply temperature fault; preserve
+    # it as a documented non-primary label if it appears.
+    if "cooling" in n and "supply" in n and "temperature" in n and "fault" in n:
+        return "CSTF"
+    return None
+
+
+def resolve_by_alias(columns: Sequence[str], aliases: Sequence[str], role: str, exact_only: bool = False) -> str:
+    normalized = {c: norm_col(c) for c in columns}
+    alias_norm = [norm_col(a) for a in aliases]
+    exact = [c for c, n in normalized.items() if n in alias_norm]
+    if len(exact) == 1:
+        return exact[0]
+    if len(exact) > 1:
+        raise ValueError(f"Ambiguous {role}: multiple exact alias matches: {exact}")
+    if exact_only:
+        raise ValueError(f"No exact alias match for {role}. Columns: {list(columns)}")
+    # Token-contained aliases, longest aliases first to reduce accidental matches.
+    candidates: List[Tuple[int, str]] = []
+    for c, n in normalized.items():
+        for a in sorted(alias_norm, key=len, reverse=True):
+            atoks = a.split()
+            ntoks = n.split()
+            if all(t in ntoks for t in atoks):
+                candidates.append((len(atoks), c))
+                break
+    if not candidates:
+        raise ValueError(f"Could not resolve {role} from documented aliases. Columns: {list(columns)}")
+    max_score = max(s for s, _ in candidates)
+    best = sorted({c for s, c in candidates if s == max_score})
+    if len(best) != 1:
+        raise ValueError(f"Ambiguous {role}: {best}")
+    return best[0]
+
+
+def resolve_sensor_columns(df: pd.DataFrame, excluded: set[str]) -> Dict[str, str]:
+    """Resolve the eight cross-building measurement points by exact source names.
+
+    Amendment A1 deliberately disables token/fuzzy matching for sensor variables.
+    The first exact alias in each ordered list is selected. This prevents aggregate
+    pump metrics or secondary channels from being substituted for the documented
+    common measurement points merely because their names contain the same tokens.
+    """
+    cols = [c for c in df.columns if c not in excluded]
+    normalized = {c: norm_col(c) for c in cols}
+    mapping: Dict[str, str] = {}
+    used: set[str] = set()
+    for semantic, aliases in SENSOR_ALIASES.items():
+        candidate = None
+        for alias in aliases:
+            an = norm_col(alias)
+            matches = [c for c, n in normalized.items() if n == an]
+            if len(matches) > 1:
+                raise ValueError(f"Ambiguous exact source mapping for sensor:{semantic} alias={alias!r}: {matches}")
+            if len(matches) == 1:
+                candidate = matches[0]
+                break
+        if candidate is None:
+            raise ValueError(
+                f"Could not resolve sensor:{semantic} by the published cross-building exact aliases {list(aliases)}. "
+                f"Columns: {list(cols)}"
+            )
+        if candidate in used:
+            raise ValueError(f"One column mapped to multiple sensor concepts: {candidate}")
+        # The source paper reports some missing sensor entries; reject only a column
+        # that is not predominantly numeric/coercible rather than requiring completeness.
+        numeric = pd.to_numeric(df[candidate], errors="coerce")
+        observed = int(numeric.notna().sum())
+        if observed == 0:
+            raise ValueError(f"Resolved sensor {semantic!r} -> {candidate!r}, but it has no observed numeric values.")
+        mapping[semantic] = candidate
+        used.add(candidate)
+    return mapping
+
+def fixed_model(seed: int = SEED) -> Pipeline:
+    # Exact DecisionTree probe inherited from the locked HVAC-EVI computational core,
+    # with the current matched-reanalysis seed.
+    return Pipeline([
+        ("impute", SimpleImputer(strategy="median", keep_empty_features=True)),
+        ("model", DecisionTreeClassifier(
+            max_depth=10,
+            min_samples_leaf=10,
+            class_weight="balanced",
+            random_state=seed,
+        )),
+    ])
+
+
+def fixed_metrics(y_true: Sequence[str], y_pred: Sequence[str]) -> Dict[str, float]:
+    yt = np.asarray(y_true).astype(str)
+    yp = np.asarray(y_pred).astype(str)
+    rec = recall_score(yt, yp, labels=PRIMARY_LABELS, average=None, zero_division=0)
+    f1c = f1_score(yt, yp, labels=PRIMARY_LABELS, average=None, zero_division=0)
+    return {
+        "macro_f1": float(np.mean(f1c)),
+        "balanced_accuracy": float(np.mean(rec)),
+        "min_class_recall": float(np.min(rec)),
+        "mean_class_recall": float(np.mean(rec)),
+        "accuracy": float(accuracy_score(yt, yp)),
+    }
+
+
+def class_metrics(y_true: Sequence[str], y_pred: Sequence[str]) -> pd.DataFrame:
+    yt = np.asarray(y_true).astype(str)
+    yp = np.asarray(y_pred).astype(str)
+    pre = precision_score(yt, yp, labels=PRIMARY_LABELS, average=None, zero_division=0)
+    rec = recall_score(yt, yp, labels=PRIMARY_LABELS, average=None, zero_division=0)
+    f1c = f1_score(yt, yp, labels=PRIMARY_LABELS, average=None, zero_division=0)
+    support = pd.Series(yt).value_counts()
+    return pd.DataFrame({
+        "class_label": PRIMARY_LABELS,
+        "support": [int(support.get(l, 0)) for l in PRIMARY_LABELS],
+        "precision": pre.astype(float),
+        "recall": rec.astype(float),
+        "f1": f1c.astype(float),
+    })
+
+
+def run_oof(X: pd.DataFrame, y: pd.Series, groups: pd.Series, design: str, seed: int) -> Tuple[np.ndarray, List[Dict[str, Any]]]:
+    X = X.reset_index(drop=True)
+    y = y.reset_index(drop=True).astype(str)
+    groups = groups.reset_index(drop=True).astype(str)
+    if design == "row_wise":
+        splitter = StratifiedKFold(n_splits=N_FOLDS, shuffle=True, random_state=seed)
+        split_iter = splitter.split(X, y)
+    elif design == "ahu_disjoint":
+        splitter = StratifiedGroupKFold(n_splits=N_FOLDS, shuffle=True, random_state=seed)
+        split_iter = splitter.split(X, y, groups)
+    else:
+        raise ValueError(design)
+
+    pred = np.empty(len(y), dtype=object)
+    filled = np.zeros(len(y), dtype=bool)
+    fold_log: List[Dict[str, Any]] = []
+    for fold, (tr, te) in enumerate(split_iter, 1):
+        model = fixed_model(seed)
+        train_labels = sorted(pd.Series(y.ilo
