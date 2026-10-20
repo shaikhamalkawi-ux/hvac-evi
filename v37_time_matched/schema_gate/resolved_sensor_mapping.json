@@ -1,0 +1,32 @@
+{
+  "auditorium": {
+    "set_point_temperature": "Set point temperature",
+    "return_air_temperature": "Return temperature",
+    "supply_air_temperature": "Supply air temperature",
+    "supply_fan": "Supply fan",
+    "valve_position": "Valve position",
+    "heating_supply_temperature": "Heating supply temperature",
+    "cooling_supply_temperature": "Cooling supply temperature 1",
+    "cooling_pump": "Cooling pump 1"
+  },
+  "hospital": {
+    "set_point_temperature": "Set point temperature",
+    "return_air_temperature": "Return temperature",
+    "supply_air_temperature": "Supply air temperature",
+    "supply_fan": "Supply fan",
+    "valve_position": "Valve position",
+    "heating_supply_temperature": "Heating supply temperature",
+    "cooling_supply_temperature": "Cooling supply temperature",
+    "cooling_pump": "cooling pump"
+  },
+  "office": {
+    "set_point_temperature": "Set point temperature",
+    "return_air_temperature": "Return temperature",
+    "supply_air_temperature": "Supply air temperature",
+    "supply_fan": "Supply fan",
+    "valve_position": "Valve position",
+    "heating_supply_temperature": "Heating supply temperature1",
+    "cooling_supply_temperature": "Cooling supply temperature 1",
+    "cooling_pump": "cooling pump 1"
+  }
+}

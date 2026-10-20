@@ -2,24 +2,32 @@ cff-version: 1.2.0
 message: "If you use these reproducibility materials, please cite the accompanying manuscript and this repository."
 title: "HVAC-EVI Reproducibility Materials"
 type: software
-version: "1.0.0"
-date-released: 2026-10-04
+version: "1.1.0"
+date-released: 2026-10-20
 url: "https://github.com/shaikhamalkawi-ux/hvac-evi"
 authors:
   - family-names: Malkawi
     given-names: Ghassan
     orcid: "https://orcid.org/0000-0002-5320-7561"
   - family-names: Elsayed
-    given-names: Ahmed Abdelaziz
+    given-names: Ahmed
     orcid: "https://orcid.org/0000-0002-9255-200X"
+  - family-names: Alhagyan
+    given-names: Mohammed
+  - family-names: Hussein
+    given-names: Bakeel
 preferred-citation:
   type: article
-  title: "Beyond Aggregate HVAC Fault-Diagnosis Scores: Equipment-Independent and Cross-Building Evidence from 41 Air-Handling Units"
+  title: "Fault-Class Coverage Versus Unseen-Equipment Diagnosis: Fixed-Budget Training-Unit Selection in 41 Air-Handling Units"
   authors:
     - family-names: Malkawi
       given-names: Ghassan
       orcid: "https://orcid.org/0000-0002-5320-7561"
     - family-names: Elsayed
-      given-names: Ahmed Abdelaziz
+      given-names: Ahmed
       orcid: "https://orcid.org/0000-0002-9255-200X"
+    - family-names: Alhagyan
+      given-names: Mohammed
+    - family-names: Hussein
+      given-names: Bakeel
   year: 2026

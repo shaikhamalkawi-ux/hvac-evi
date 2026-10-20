@@ -1,0 +1,10 @@
+building,class_label,count
+auditorium,Normal,60219
+auditorium,RATSF,1734
+auditorium,SFF,6525
+hospital,Normal,53757
+hospital,RATSF,8835
+hospital,SFF,1921
+office,Normal,119402
+office,RATSF,6999
+office,SFF,47983

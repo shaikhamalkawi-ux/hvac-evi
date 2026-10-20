@@ -1,0 +1,9 @@
+semantic_feature,auditorium,hospital,office
+set_point_temperature,Set point temperature,Set point temperature,Set point temperature
+return_air_temperature,Return temperature,Return temperature,Return temperature
+supply_air_temperature,Supply air temperature,Supply air temperature,Supply air temperature
+supply_fan,Supply fan,Supply fan,Supply fan
+valve_position,Valve position,Valve position,Valve position
+heating_supply_temperature,Heating supply temperature,Heating supply temperature,Heating supply temperature1
+cooling_supply_temperature,Cooling supply temperature 1,Cooling supply temperature,Cooling supply temperature 1
+cooling_pump,Cooling pump 1,cooling pump,cooling pump 1

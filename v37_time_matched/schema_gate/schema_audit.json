@@ -1,0 +1,192 @@
+{
+  "auditorium": {
+    "source_file": "auditorium_scientific_data.csv",
+    "raw_rows_loaded": 113375,
+    "primary_three_class_rows": 68478,
+    "raw_column_count": 18,
+    "raw_columns": [
+      "AHU name",
+      "Time",
+      "Set point temperature",
+      "Return temperature",
+      "Supply air temperature",
+      "Supply fan",
+      "Valve position",
+      "Heating supply temperature",
+      "Total heating pump",
+      "Heating pump 1",
+      "Heating pump 2",
+      "Heating pump 3",
+      "Cooling supply temperature 1",
+      "Cooling supply temperature 2",
+      "Total cooling pump",
+      "Cooling pump 1",
+      "Cooling pump 2",
+      "labeling"
+    ],
+    "label_column": "labeling",
+    "ahu_column": "AHU name",
+    "time_column": "Time",
+    "resolved_sensor_columns": {
+      "set_point_temperature": "Set point temperature",
+      "return_air_temperature": "Return temperature",
+      "supply_air_temperature": "Supply air temperature",
+      "supply_fan": "Supply fan",
+      "valve_position": "Valve position",
+      "heating_supply_temperature": "Heating supply temperature",
+      "cooling_supply_temperature": "Cooling supply temperature 1",
+      "cooling_pump": "Cooling pump 1"
+    },
+    "resolved_ahu_count": 13,
+    "canonical_primary_class_counts": {
+      "Normal": 60219,
+      "RATSF": 1734,
+      "SFF": 6525
+    },
+    "canonical_all_label_counts": {
+      "Normal": 60219,
+      "HPF": 24890,
+      "CPF": 19292,
+      "SFF": 6525,
+      "RATSF": 1734,
+      "SATSF": 404,
+      "VPF": 311
+    },
+    "unmapped_raw_label_examples": [],
+    "primary_missing_fraction_by_sensor": {
+      "set_point_temperature": 0.0,
+      "return_air_temperature": 0.0,
+      "supply_air_temperature": 0.0,
+      "supply_fan": 0.0,
+      "valve_position": 0.0,
+      "heating_supply_temperature": 0.550045270013727,
+      "cooling_supply_temperature": 0.44995472998627295,
+      "cooling_pump": 0.44995472998627295
+    }
+  },
+  "hospital": {
+    "source_file": "hosptial_scientific_data.csv",
+    "raw_rows_loaded": 66048,
+    "primary_three_class_rows": 64513,
+    "raw_column_count": 13,
+    "raw_columns": [
+      "AHU name",
+      "DATE",
+      "Time",
+      "Set point temperature",
+      "Return temperature",
+      "Supply air temperature",
+      "Supply fan",
+      "Valve position",
+      "Heat Exchanger",
+      "Heating supply temperature",
+      "Cooling supply temperature",
+      "cooling pump",
+      "labeling"
+    ],
+    "label_column": "labeling",
+    "ahu_column": "AHU name",
+    "time_column": null,
+    "resolved_sensor_columns": {
+      "set_point_temperature": "Set point temperature",
+      "return_air_temperature": "Return temperature",
+      "supply_air_temperature": "Supply air temperature",
+      "supply_fan": "Supply fan",
+      "valve_position": "Valve position",
+      "heating_supply_temperature": "Heating supply temperature",
+      "cooling_supply_temperature": "Cooling supply temperature",
+      "cooling_pump": "cooling pump"
+    },
+    "resolved_ahu_count": 8,
+    "canonical_primary_class_counts": {
+      "Normal": 53757,
+      "RATSF": 8835,
+      "SFF": 1921
+    },
+    "canonical_all_label_counts": {
+      "Normal": 53757,
+      "RATSF": 8835,
+      "SFF": 1921,
+      "VPF": 1525,
+      "SATSF": 9,
+      "CSTF": 1
+    },
+    "unmapped_raw_label_examples": [],
+    "primary_missing_fraction_by_sensor": {
+      "set_point_temperature": 0.0,
+      "return_air_temperature": 0.12723017066327716,
+      "supply_air_temperature": 0.00037201804287507946,
+      "supply_fan": 0.0,
+      "valve_position": 0.0,
+      "heating_supply_temperature": 0.44034535674980235,
+      "cooling_supply_temperature": 0.5596546432501976,
+      "cooling_pump": 0.5596546432501976
+    }
+  },
+  "office": {
+    "source_file": "office_scientific_data.csv",
+    "raw_rows_loaded": 175532,
+    "primary_three_class_rows": 174384,
+    "raw_column_count": 21,
+    "raw_columns": [
+      "AHU name",
+      "Time",
+      "Set point temperature",
+      "Return temperature",
+      "Supply air temperature",
+      "Supply fan",
+      "Valve position",
+      "Heating supply temperature1",
+      "Heating supply temperature2",
+      "Total heating pump",
+      "Heating pump 1",
+      "Heating pump 2",
+      "Heating pump 3",
+      "Cooling supply temperature 1",
+      "Cooling supply temperature 2",
+      "Total cooling pump",
+      "cooling pump 1",
+      "cooling pump 2",
+      "cooling pump 3",
+      "cooling pump 4",
+      "labeling"
+    ],
+    "label_column": "labeling",
+    "ahu_column": "AHU name",
+    "time_column": "Time",
+    "resolved_sensor_columns": {
+      "set_point_temperature": "Set point temperature",
+      "return_air_temperature": "Return temperature",
+      "supply_air_temperature": "Supply air temperature",
+      "supply_fan": "Supply fan",
+      "valve_position": "Valve position",
+      "heating_supply_temperature": "Heating supply temperature1",
+      "cooling_supply_temperature": "Cooling supply temperature 1",
+      "cooling_pump": "cooling pump 1"
+    },
+    "resolved_ahu_count": 20,
+    "canonical_primary_class_counts": {
+      "Normal": 119402,
+      "RATSF": 6999,
+      "SFF": 47983
+    },
+    "canonical_all_label_counts": {
+      "Normal": 119402,
+      "SFF": 47983,
+      "RATSF": 6999,
+      "SATSF": 1031,
+      "VPF": 117
+    },
+    "unmapped_raw_label_examples": [],
+    "primary_missing_fraction_by_sensor": {
+      "set_point_temperature": 0.0,
+      "return_air_temperature": 0.0,
+      "supply_air_temperature": 0.0,
+      "supply_fan": 0.0,
+      "valve_position": 0.0,
+      "heating_supply_temperature": 0.41712542435085787,
+      "cooling_supply_temperature": 0.5828745756491421,
+      "cooling_pump": 0.5828745756491421
+    }
+  }
+}

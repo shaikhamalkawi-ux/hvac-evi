@@ -2,13 +2,25 @@
 
 Reproducibility materials for the manuscript:
 
-**Beyond Aggregate HVAC Fault-Diagnosis Scores: Equipment-Independent and Cross-Building Evidence from 41 Air-Handling Units**
+**Fault-Class Coverage Versus Unseen-Equipment Diagnosis: Fixed-Budget Training-Unit Selection in 41 Air-Handling Units**
 
-Authors: Ghassan Malkawi and Ahmed Abdelaziz Elsayed.
+Authors: Ghassan Malkawi, Ahmed Elsayed, Mohammed Alhagyan, and Bakeel Hussein.
 
-This repository supports the empirical analyses reported in the manuscript. It is intended to make the evaluation design, source boundaries, fixed model settings, derived inputs, result tables, and validation code auditable.
+This repository preserves the earlier validation evidence and the additive V37 public code/summary audit.  It is intended to make the evaluation design, source boundaries, fixed model settings, derived inputs, result tables, and validation code auditable.
 
-## What the study tests
+## V37 public code and aggregate-result update (20 October 2026)
+
+The research manuscript now includes a **retrospective time-matched source-AHU replacement sensitivity** (3,240 additional fixed-model fits). The public update provides the analysis scripts, frozen protocol, metadata-only source schema, and aggregate result/QA tables in **[`v37_time_matched/`](v37_time_matched/)**. Run the publicly self-contained, standard-library checker with:
+
+```bash
+python v37_time_matched/code/verify_public_tables.py
+```
+
+**Critical availability boundary:** This checks public table arithmetic and file hashes; it does not reconstruct model fits. The full analysis code in this folder requires frozen V25 input/loader artifacts that have **not** been published here pending rights review. The independent public AHU source RBC-Nesbitt was inspected only for compatibility and was **not** added as a new performance dataset. The Zenodo reviewer draft is separate and remains unpublished; **no reviewer preview token is in this public repository**. Do not infer independent physical-fault confirmation, causal equipment effects, or energy savings.
+
+The earlier repository files remain available unchanged; they document earlier fixed validation experiments and are not a complete public V37 numerical replay.
+
+## Earlier validation scope
 
 The study separates four quantities that should not be collapsed into a single HVAC fault-diagnosis score:
 

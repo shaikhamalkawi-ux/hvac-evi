@@ -2,7 +2,7 @@
 
 This repository is the publication-facing reproducibility companion for:
 
-**Beyond Aggregate Scores in HVAC Fault Diagnosis: Independent-Unit Evaluation and Real-Operational Validation Across 41 Air-Handling Units**
+**Fault-Class Coverage Versus Unseen-Equipment Diagnosis: Fixed-Budget Training-Unit Selection in 41 Air-Handling Units**
 
 ## Executable code
 - `scripts/run_field_external_validation_A4.py` — complete 41-AHU real-operational external-validation runner.
@@ -41,3 +41,12 @@ Third-party raw data are not redistributed. Exact Wang v3 SHA-256 values are in 
 ## Citation and licence
 - `CITATION.cff`
 - `LICENSE`
+
+## V37 matched source replacement — additive public release (2026-10-20)
+- `v37_time_matched/README.md` — protocol, scope, admitted outcomes and replay/rights boundary.
+- `v37_time_matched/protocol_calendar_matched.json` — internally frozen, not externally preregistered.
+- `v37_time_matched/code/` — allocation, scoring and independent-test scripts; `verify_public_tables.py` works without private inputs.
+- `v37_time_matched/results/` — aggregate results and per-unit/class summary tables (not raw source or selected-index artifacts).
+- `v37_time_matched/schema_gate/`, `v37_time_matched/qa/` and `v37_time_matched/SHA256SUMS.txt` — metadata-only schema and audit hashes.
+
+The complete V37 experiment cannot be rerun from this public repository alone. Third-party raw observations and private source-derived detailed arrays are excluded pending rights checks. The Zenodo draft is separately shared with journal reviewers, not published here.

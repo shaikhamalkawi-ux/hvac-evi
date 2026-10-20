@@ -1,0 +1,32 @@
+{
+  "study_id": "HVAC-EVI post-BSERT prospective-internal matched-hour sensitivity R1",
+  "date": "2026-10-20",
+  "status": "frozen before this analysis model fitting or outcome inspection; not externally preregistered",
+  "baseline": "V36R2 frozen and unaffected; source V25 exact raw Wang and V21 matrices",
+  "dataset": "within-building Wang Figshare v3, 3 buildings, 41 held-out AHUs, labels Normal/RATSF/SFF only",
+  "time_handling": "exact source timestamps parsed without time-zone conversion; duplicate AHU/timestamp rows dropped entirely from both train eligibility and held-out evaluation in ALL buildings",
+  "arms": {
+    "k1": "128 known-class records per class from one eligible source AHU (384 rows total)",
+    "k2": "64 same anchor-A records per class plus 64 matched-time class records from a different donor AHU B (384 rows total)",
+    "paired_exchange": "choose exactly 64 distinct A-B same-time-key matched pairs per class, select 64 additional distinct anchor-A records; k1 takes matched A + extra A, k2 takes matched B + extra A; key histogram per class exactly equal across arms",
+    "source_eligibility": "A and B each have at least 128 nonduplicated source class records and at least 64 one-to-one shared time-key pairings; all selected AHUs differ from held-out target",
+    "donor_choice": "uniform over all feasible ordered A,B pairs separately by class, seeded by SHA-256; no target predictor/label/outcome used in selection"
+  },
+  "matching_designs": [
+    {"key":"exact_hour", "time_key":"YYYY-MM-DD HH", "status":"strict overlapping timestamps, infeasibility retained per held-out AHU"},
+    {"key":"month_hour", "time_key":"YYYY-MM and hour-of-day", "status":"coarser same-month/hour sensitivity across all feasible AHUs; does not control day"}
+  ],
+  "repetitions": 10,
+  "source_training_rows_per_class": 128,
+  "fitted_models": {
+    "DecisionTree":{"max_depth":10,"min_samples_leaf":10,"class_weight":"balanced","random_state":20260802},
+    "RandomForest":{"n_estimators":100,"max_depth":10,"min_samples_leaf":10,"class_weight":"balanced","max_features":"sqrt","bootstrap":true,"random_state":20260802,"n_jobs":1}
+  },
+  "preprocessing":{"SimpleImputer":{"strategy":"median","keep_empty_features":true},"fit_scope":"each selected 384-row partition only"},
+  "metric":"mean of per-target-AHU and per-label recall over represented classes and feasible held-out target AHUs; 10 paired acquisition repeats; report exact class-specific support, no filling missing targets",
+  "additional_diagnostics":["class-specific per-target raw confusion counts", "k1-k2 training timestamp histogram parity", "distinct AHU-days and calendar days", "representative donor pair coverage", "leave-one-target-AHU-out contrast", "hospital N06 strict-match eligibility"],
+  "comparison":"k2 minus k1 in percentage points for each model and building within the same matching design; never pool buildings or treat repetitions as independent AHUs",
+  "report_all_designs":true,
+  "nonclaims":["equipment-identity causal effect","cross-building transport","prospective field validation","repair-confirmed fault recognition","universally optimal policy","external preregistration","unrestricted data license"],
+  "no_postoutcome_changes":"no tuning eligibility, matching time key, models, thresholds, repetitions, target pool or objective based on outcomes"
+}

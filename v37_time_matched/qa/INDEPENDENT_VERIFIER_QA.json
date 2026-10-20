@@ -1,0 +1,198 @@
+{
+  "archives": [
+    {
+      "cell_rows": 720,
+      "n_preds": 240,
+      "n_training_indices": 120,
+      "shard": "exact_hour_auditorium_00-06",
+      "targets": [
+        "AHU-01",
+        "AHU-02",
+        "AHU-04",
+        "AHU-05",
+        "AHU-07",
+        "AHU-08"
+      ]
+    },
+    {
+      "cell_rows": 840,
+      "n_preds": 280,
+      "n_training_indices": 140,
+      "shard": "exact_hour_auditorium_06-13",
+      "targets": [
+        "AHU-09",
+        "AHU-10",
+        "AHU-11",
+        "AHU-12",
+        "AHU-13",
+        "AHU-15",
+        "AHU-16"
+      ]
+    },
+    {
+      "cell_rows": 840,
+      "n_preds": 280,
+      "n_training_indices": 140,
+      "shard": "exact_hour_hospital_00-07",
+      "targets": [
+        "AHU-N01",
+        "AHU-N02",
+        "AHU-N03",
+        "AHU-N04",
+        "AHU-N05",
+        "AHU-N07",
+        "AHU-N08"
+      ]
+    },
+    {
+      "cell_rows": 840,
+      "n_preds": 280,
+      "n_training_indices": 140,
+      "shard": "exact_hour_office_00-07",
+      "targets": [
+        "AHU-101",
+        "AHU-102",
+        "AHU-103",
+        "AHU-104",
+        "AHU-105",
+        "AHU-107",
+        "AHU-108"
+      ]
+    },
+    {
+      "cell_rows": 840,
+      "n_preds": 280,
+      "n_training_indices": 140,
+      "shard": "exact_hour_office_07-14",
+      "targets": [
+        "AHU-109",
+        "AHU-110",
+        "AHU-111",
+        "AHU-112",
+        "AHU-201",
+        "AHU-202",
+        "AHU-203"
+      ]
+    },
+    {
+      "cell_rows": 720,
+      "n_preds": 240,
+      "n_training_indices": 120,
+      "shard": "exact_hour_office_14-20",
+      "targets": [
+        "AHU-204",
+        "AHU-205",
+        "AHU-206",
+        "AHU-207",
+        "AHU-208",
+        "AHU-209"
+      ]
+    },
+    {
+      "cell_rows": 840,
+      "n_preds": 280,
+      "n_training_indices": 140,
+      "shard": "month_hour_auditorium_00-07",
+      "targets": [
+        "AHU-01",
+        "AHU-02",
+        "AHU-04",
+        "AHU-05",
+        "AHU-07",
+        "AHU-08",
+        "AHU-09"
+      ]
+    },
+    {
+      "cell_rows": 720,
+      "n_preds": 240,
+      "n_training_indices": 120,
+      "shard": "month_hour_auditorium_07-13",
+      "targets": [
+        "AHU-10",
+        "AHU-11",
+        "AHU-12",
+        "AHU-13",
+        "AHU-15",
+        "AHU-16"
+      ]
+    },
+    {
+      "cell_rows": 960,
+      "n_preds": 320,
+      "n_training_indices": 160,
+      "shard": "month_hour_hospital_00-08",
+      "targets": [
+        "AHU-N01",
+        "AHU-N02",
+        "AHU-N03",
+        "AHU-N04",
+        "AHU-N05",
+        "AHU-N06",
+        "AHU-N07",
+        "AHU-N08"
+      ]
+    },
+    {
+      "cell_rows": 840,
+      "n_preds": 280,
+      "n_training_indices": 140,
+      "shard": "month_hour_office_00-07",
+      "targets": [
+        "AHU-101",
+        "AHU-102",
+        "AHU-103",
+        "AHU-104",
+        "AHU-105",
+        "AHU-107",
+        "AHU-108"
+      ]
+    },
+    {
+      "cell_rows": 840,
+      "n_preds": 280,
+      "n_training_indices": 140,
+      "shard": "month_hour_office_07-14",
+      "targets": [
+        "AHU-109",
+        "AHU-110",
+        "AHU-111",
+        "AHU-112",
+        "AHU-201",
+        "AHU-202",
+        "AHU-203"
+      ]
+    },
+    {
+      "cell_rows": 720,
+      "n_preds": 240,
+      "n_training_indices": 120,
+      "shard": "month_hour_office_14-20",
+      "targets": [
+        "AHU-204",
+        "AHU-205",
+        "AHU-206",
+        "AHU-207",
+        "AHU-208",
+        "AHU-209"
+      ]
+    }
+  ],
+  "counters": {
+    "actual_independent_retrained_fits": 48,
+    "feasible_targets_exact_hour": 40,
+    "feasible_targets_month_hour": 41,
+    "matched_label_time_histograms_checked": 2430,
+    "paired_allocations_checked": 810,
+    "saved_prediction_cell_checks": 9720,
+    "source_class_units_checked": 4860
+  },
+  "frozen_protocol_SHA256": "a1d3f46a3e54277615321af903709d1d5c50729d0c297a290821ff7cd120667f",
+  "independent_replay_Q_entries": 24,
+  "independent_replay_Q_max_abs_difference_pct": 2.842170943040401e-14,
+  "original_V36R2_table3_12of12_locked_within_display_rounding": true,
+  "scope_warning": "No causal equipment-identity inference, no hospital N06 strict-hour evidence, no external validation",
+  "source_V25_SHA256": "eb46d628ed2e4fb5d3c425e7beafdf2609c1c98c5b32c30eca1217fdc1db3652",
+  "source_wang_raw_SHA256_all_match": true,
+  "stage": "fully verified retrospective time-key-matched donor-exchange study, manuscript untouched"
+}
