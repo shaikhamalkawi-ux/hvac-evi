@@ -8,6 +8,19 @@ Authors: Ghassan Malkawi, Ahmed Elsayed, Mohammed Alhagyan, and Bakeel Hussein.
 
 This repository preserves the earlier validation evidence and the additive V37 public code/summary audit.  It is intended to make the evaluation design, source boundaries, fixed model settings, derived inputs, result tables, and validation code auditable.
 
+## V38 original Hospital-source date audit (October 2026)
+
+The V38 editorial revision separately audited the exact public [Wang Figshare v3 dataset](https://doi.org/10.6084/m9.figshare.27147678.v3). The hospital CSV contains 66,048 raw rows all labelled with **2023 dates** (1 January through 21 December). The original published data-descriptor describes **2022**. This discrepancy is **unresolved**: we did not redefine the physical collection year or silently rewrite timestamps. The main V38 journal manuscript reports the issue and retains previously locked results.
+
+The public audit script and summary are in [`v38_hospital_provenance/`](v38_hospital_provenance/). Obtain the original hospital CSV from the source and run:
+
+```bash
+pip install -r v38_hospital_provenance/requirements.txt
+python v38_hospital_provenance/verify_hospital_source_audit.py /path/to/hosptial_scientific_data.csv
+```
+
+This also reproduces the 161 repeated AHU-time keys, 322 included rows and 33 conflicting-label keys in the admitted three-class subset. This source audit does **not** rerun models or confirm physical repairs. No original raw data, private row indices, or Zenodo reviewer tokens appear here.
+
 ## V37 public code and aggregate-result update (20 October 2026)
 
 The research manuscript now includes a **retrospective time-matched source-AHU replacement sensitivity** (3,240 additional fixed-model fits). The public update provides the analysis scripts, frozen protocol, metadata-only source schema, and aggregate result/QA tables in **[`v37_time_matched/`](v37_time_matched/)**. Run the publicly self-contained, standard-library checker with:

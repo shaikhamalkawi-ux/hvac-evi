@@ -1,0 +1,25 @@
+{
+  "status": "PASS",
+  "source_sha256": "66feab7fe66d77ca1c632315a61a7a93412ff00dc2fb0cd9b2485394cecca9f7",
+  "source_filename": "hosptial_scientific_data.csv",
+  "raw_rows": 66048,
+  "retained_three_class_rows": 64513,
+  "other_label_rows": 1535,
+  "ahu_count": 8,
+  "min_timestamp": "2023-01-01 00:00:00",
+  "max_timestamp": "2023-12-21 23:00:00",
+  "year_counts": {
+    "2023": 66048
+  },
+  "unique_days": 344,
+  "raw_duplicate_keys_rows_conflicting": [
+    184,
+    368,
+    56
+  ],
+  "three_class_duplicate_keys_rows_conflicting": [
+    161,
+    322,
+    33
+  ]
+}

@@ -50,3 +50,8 @@ Third-party raw data are not redistributed. Exact Wang v3 SHA-256 values are in 
 - `v37_time_matched/schema_gate/`, `v37_time_matched/qa/` and `v37_time_matched/SHA256SUMS.txt` — metadata-only schema and audit hashes.
 
 The complete V37 experiment cannot be rerun from this public repository alone. Third-party raw observations and private source-derived detailed arrays are excluded pending rights checks. The Zenodo draft is separately shared with journal reviewers, not published here.
+
+## V38 Hospital source-year audit
+- `v38_hospital_provenance/verify_hospital_source_audit.py`: source-hash-locked verification of public Wang hospital CSV year, duplicate keys, discordant labels.
+- `v38_hospital_provenance/HOSPITAL_SOURCE_AUDIT_PASS.json`: aggregate verified results; no raw third-party data.
+- `v38_hospital_provenance/README.md` and `requirements.txt`: instructions and exact claim boundaries.
